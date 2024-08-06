@@ -18,6 +18,7 @@ public class Worker {
 
     public void startProject(Project project) throws InterruptedException {
         project.take();
+        this.ownedProject = project;
         System.out.println(this.name+" has taken " + project.getInfo());
         System.out.println(this.name+" figuring out problem for " + project.getCompletionTime()+ "msec");
         Thread.sleep(project.getCompletionTime());
@@ -25,8 +26,10 @@ public class Worker {
         System.out.println(this.name+" found the problem it takes "+ problemSolveTime + "msec to solve" );
         Thread.sleep(problemSolveTime);
         addMoney(project.getReward());
-        this.ownedProject = null;
+
         System.out.println(this.name + " finished "+ project.getInfo());
+        Simulation.languageSwitch.set(ownedProject.getLanguage().ordinal(), false);
+        this.ownedProject = null;
 
 
 

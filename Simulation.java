@@ -5,13 +5,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Simulation {
 
-    private final static String[] WORKER_NAMES = "Andris, Laci, Martin, Peti".split(",");
+    private final static String[] WORKER_NAMES = "Andris,Laci,Martin,Peti".split(",");
 
     private final static int PROJECT_MAX = 4;
 
     private final  static int GOAL_MONEY = 700;
 
     private final static int WAIT_BETWEEN_PROJECT = 500;
+    private final static int WAIT_FOR_COMPUTER = 300;
 
     private final static List<Worker> workers = new ArrayList<>();
 
@@ -20,6 +21,9 @@ public class Simulation {
     private final static BlockingQueue<Project> projects = new LinkedBlockingDeque<>(PROJECT_MAX);
     private final static ExecutorService workerExecutor = Executors.newFixedThreadPool(WORKER_NAMES.length + 1);
     private final static ScheduledExecutorService checkExecutor = Executors.newScheduledThreadPool(1);
+
+    public final static LanguageSwitch languageSwitch = new LanguageSwitch(Language.getCount());
+
 
 
     public static void main(String[] args) {
@@ -50,7 +54,7 @@ public class Simulation {
             }
         }
         catch (InterruptedException e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         finally {
             simulationOver.set(true);
@@ -63,16 +67,36 @@ public class Simulation {
     private static void startWorker(final Worker worker){
         while(!simulationOver.get()){
             Project p = projects.poll();
-
             assert p != null : "No project to work on";
-            if(!p.isOwned()){
-                try{
-                    worker.startProject(p);
-                    Thread.sleep(WAIT_BETWEEN_PROJECT);
+            if (!languageSwitch.get(p.getLanguage().ordinal())){
+                start(p,worker);
+            }else{
+                try {
+                    System.out.println("Waiting for computer");
+                    Thread.sleep(WAIT_FOR_COMPUTER);
+                    if(!languageSwitch.get(p.getLanguage().ordinal())){
+                        start(p,worker);
+                    }else{
+                        System.out.println(worker.getName() + " got tired of waiting, moves to next project");
+                    }
                 }
                 catch (InterruptedException e){
                     throw new RuntimeException(e);
                 }
+            }
+
+
+        }
+    }
+    private static void start(final Project p, final Worker worker){
+        languageSwitch.set(p.getLanguage().ordinal(), true);
+        if(!p.isOwned()){
+            try{
+                worker.startProject(p);
+                Thread.sleep(WAIT_BETWEEN_PROJECT);
+            }
+            catch (InterruptedException e){
+                throw new RuntimeException(e);
             }
         }
     }
